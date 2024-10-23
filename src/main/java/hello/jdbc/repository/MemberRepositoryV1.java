@@ -1,14 +1,23 @@
 package hello.jdbc.repository;
 
-import hello.jdbc.domain.Member;
 import hello.jdbc.connection.DBConnectionUtil;
+import hello.jdbc.domain.Member;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.support.JdbcUtils;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.NoSuchElementException;
 
 @Slf4j
-public class MemberRepositoryV0 {
+public class MemberRepositoryV1 {
+
+    private final DataSource dataSource;
+
+    public MemberRepositoryV1(DataSource dataSource){
+        this.dataSource = dataSource;
+    }
+
 
     //맴버를 저장하는 메서드
     public Member save(Member member)throws SQLException{
@@ -113,34 +122,17 @@ public class MemberRepositoryV0 {
 
 
     //커넥션 열결 메서드
-    private Connection getConnection(){
-        return DBConnectionUtil.getConnection();
+    private Connection getConnection() throws SQLException {
+        Connection con = dataSource.getConnection();
+        log.info("getConnection={}, class={}",con , con.getClass());
+        return con;
     }
 
 
     //자원 해제
     private void close(Connection con, Statement stmt , ResultSet rs){
-        if(rs != null){
-            try {
-             rs.close();
-            } catch (SQLException e) {
-             log.info("error" , e);
-            }
-    }
-        if (stmt != null) {
-            try {
-                stmt.close();
-            }catch (SQLException e){
-                log.info("error",e);
-            }
-        }
-
-        if(con !=null){ //커넥션을 닫아주지 않으면 결과적으로 커넥션 부족으로 장애가 발생하기떄문에 꼭 자원들을 다 반납해야한다
-            try {
-                con.close();
-            }catch (SQLException e){
-                log.info("error",e);
-            }
-        }
+        JdbcUtils.closeResultSet(rs);
+        JdbcUtils.closeStatement(stmt);
+        JdbcUtils.closeConnection(con);
     }
 }
